@@ -12,13 +12,7 @@ import {
 import { Info } from "lucide-react"
 // device width
 
-function getCellSize(): number {
-	const minDimension = Math.min(window.innerWidth, window.innerHeight)
-	return Math.min(Math.floor(minDimension / 35), 20)
-}
-
 const GRID_SIZE = 30
-const CELL_SIZE = getCellSize()
 
 type Grid = boolean[][]
 
@@ -45,7 +39,16 @@ const GameOfLife: React.FC = () => {
 	const [lastCell, setLastCell] = useState<[number, number] | null>(null)
 	const [previousStates, setPreviousStates] = useState<Grid[]>([])
 	const [stopAtLoop, setStopAtLoop] = useState(false)
+	const [CELL_SIZE, setCellSize] = useState<number>(0)
 	const gridRef = useRef<HTMLDivElement>(null)
+
+	useEffect(() => {
+		function getCellSize(): number {
+			const minDimension = Math.min(window.innerWidth, window.innerHeight)
+			return Math.min(Math.floor(minDimension / 35), 20)
+		}
+		setCellSize(getCellSize())
+	}, [])
 
 	const countNeighbors = (grid: Grid, x: number, y: number): number => {
 		let count = 0
