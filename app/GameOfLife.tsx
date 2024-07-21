@@ -77,7 +77,7 @@ const GameOfLife: React.FC = () => {
 					}
 
 					setPreviousStates(prev => [prevGrid, ...prev.slice(0, 1)])
-					console.log(previousStates)
+
 					return newGrid
 				})
 			}, 100)
