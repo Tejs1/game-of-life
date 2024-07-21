@@ -12,11 +12,23 @@ const createEmptyGrid = (): Grid =>
 		.fill(null)
 		.map(() => Array(GRID_SIZE).fill(false))
 
+const gridsEqual = (grid1: Grid, grid2: Grid): boolean => {
+	for (let y = 0; y < GRID_SIZE; y++) {
+		for (let x = 0; x < GRID_SIZE; x++) {
+			if (grid1[y][x] !== grid2[y][x]) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 const GameOfLife: React.FC = () => {
 	const [grid, setGrid] = useState<Grid>(createEmptyGrid())
 	const [isRunning, setIsRunning] = useState(false)
 	const [isDrawing, setIsDrawing] = useState(false)
 	const [lastCell, setLastCell] = useState<[number, number] | null>(null)
+	const [previousStates, setPreviousStates] = useState<Grid[]>([])
 	const gridRef = useRef<HTMLDivElement>(null)
 
 	const countNeighbors = (grid: Grid, x: number, y: number): number => {
@@ -48,16 +60,30 @@ const GameOfLife: React.FC = () => {
 		}
 		return newGrid
 	}, [])
-
 	useEffect(() => {
 		let intervalId: NodeJS.Timeout
 		if (isRunning) {
 			intervalId = setInterval(() => {
-				setGrid(prevGrid => nextGeneration(prevGrid))
+				setGrid(prevGrid => {
+					const newGrid = nextGeneration(prevGrid)
+
+					if (
+						previousStates.length > 0 &&
+						(gridsEqual(newGrid, prevGrid) ||
+							previousStates.some(state => gridsEqual(state, newGrid)))
+					) {
+						setIsRunning(false)
+						return prevGrid
+					}
+
+					setPreviousStates(prev => [prevGrid, ...prev.slice(0, 1)])
+					console.log(previousStates)
+					return newGrid
+				})
 			}, 100)
 		}
 		return () => clearInterval(intervalId)
-	}, [isRunning, nextGeneration])
+	}, [isRunning, nextGeneration, previousStates])
 
 	const handleCellChange = (x: number, y: number) => {
 		if (isRunning) return
@@ -119,10 +145,12 @@ const GameOfLife: React.FC = () => {
 			}
 		}
 		setGrid(newGrid)
+		setPreviousStates([])
 	}
 
 	const clearGrid = () => {
 		setGrid(createEmptyGrid())
+		setPreviousStates([])
 	}
 
 	return (
