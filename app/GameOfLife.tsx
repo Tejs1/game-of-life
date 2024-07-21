@@ -1,9 +1,24 @@
 "use client"
 import React, { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { Info } from "lucide-react"
+// device width
+
+function getCellSize(): number {
+	const minDimension = Math.min(window.innerWidth, window.innerHeight)
+	return Math.min(Math.floor(minDimension / 35), 20)
+}
 
 const GRID_SIZE = 30
-const CELL_SIZE = 20
+const CELL_SIZE = getCellSize()
 
 type Grid = boolean[][]
 
@@ -158,7 +173,7 @@ const GameOfLife: React.FC = () => {
 	}
 
 	return (
-		<div className="flex flex-col items-center gap-4">
+		<div className="flex flex-col items-center gap-4 justify-center">
 			<div
 				ref={gridRef}
 				className="border border-gray-300 inline-block touch-none"
@@ -186,7 +201,7 @@ const GameOfLife: React.FC = () => {
 					</div>
 				))}
 			</div>
-			<div className="flex gap-2">
+			<div className="flex gap-2 flex-col sm:flex-row">
 				<Button onClick={() => setIsRunning(!isRunning)}>
 					{isRunning ? "Stop" : "Start"}
 				</Button>
@@ -196,9 +211,28 @@ const GameOfLife: React.FC = () => {
 				<Button onClick={clearGrid} disabled={isRunning}>
 					Clear
 				</Button>
-				<Button onClick={() => setStopAtLoop(!stopAtLoop)}>
-					{stopAtLoop ? "Stop at Loop On" : "Stop at Loop Off"}
-				</Button>
+
+				<div className="flex items-center space-x-2 ">
+					<Switch
+						id="loop"
+						checked={stopAtLoop}
+						onCheckedChange={() => setStopAtLoop(!stopAtLoop)}
+					/>
+					<Label htmlFor="loop">Stop at Loop</Label>
+					<TooltipProvider>
+						<Tooltip>
+							<TooltipTrigger>
+								<Info />
+							</TooltipTrigger>
+							<TooltipContent>
+								<p>
+									pauses the game when it detects a repeating pattern in the
+									grid.
+								</p>
+							</TooltipContent>
+						</Tooltip>
+					</TooltipProvider>
+				</div>
 			</div>
 		</div>
 	)
