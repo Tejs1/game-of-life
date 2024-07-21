@@ -29,6 +29,7 @@ const GameOfLife: React.FC = () => {
 	const [isDrawing, setIsDrawing] = useState(false)
 	const [lastCell, setLastCell] = useState<[number, number] | null>(null)
 	const [previousStates, setPreviousStates] = useState<Grid[]>([])
+	const [stopAtLoop, setStopAtLoop] = useState(false)
 	const gridRef = useRef<HTMLDivElement>(null)
 
 	const countNeighbors = (grid: Grid, x: number, y: number): number => {
@@ -60,6 +61,7 @@ const GameOfLife: React.FC = () => {
 		}
 		return newGrid
 	}, [])
+
 	useEffect(() => {
 		let intervalId: NodeJS.Timeout
 		if (isRunning) {
@@ -67,23 +69,25 @@ const GameOfLife: React.FC = () => {
 				setGrid(prevGrid => {
 					const newGrid = nextGeneration(prevGrid)
 
-					if (
-						previousStates.length > 0 &&
-						(gridsEqual(newGrid, prevGrid) ||
-							previousStates.some(state => gridsEqual(state, newGrid)))
-					) {
-						setIsRunning(false)
-						return prevGrid
-					}
+					if (stopAtLoop) {
+						if (
+							previousStates.length > 0 &&
+							(gridsEqual(newGrid, prevGrid) ||
+								previousStates.some(state => gridsEqual(state, newGrid)))
+						) {
+							setIsRunning(false)
+							return prevGrid
+						}
 
-					setPreviousStates(prev => [prevGrid, ...prev.slice(0, 1)])
+						setPreviousStates(prev => [prevGrid, ...prev.slice(0, 1)])
+					}
 
 					return newGrid
 				})
 			}, 100)
 		}
 		return () => clearInterval(intervalId)
-	}, [isRunning, nextGeneration, previousStates])
+	}, [isRunning, nextGeneration, previousStates, stopAtLoop])
 
 	const handleCellChange = (x: number, y: number) => {
 		if (isRunning) return
@@ -191,6 +195,9 @@ const GameOfLife: React.FC = () => {
 				</Button>
 				<Button onClick={clearGrid} disabled={isRunning}>
 					Clear
+				</Button>
+				<Button onClick={() => setStopAtLoop(!stopAtLoop)}>
+					{stopAtLoop ? "Stop at Loop On" : "Stop at Loop Off"}
 				</Button>
 			</div>
 		</div>
