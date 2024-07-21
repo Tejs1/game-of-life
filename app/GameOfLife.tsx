@@ -186,8 +186,12 @@ const GameOfLife: React.FC = () => {
 				<Button onClick={() => setIsRunning(!isRunning)}>
 					{isRunning ? "Stop" : "Start"}
 				</Button>
-				<Button onClick={randomizeGrid}>Randomize</Button>
-				<Button onClick={clearGrid}>Clear</Button>
+				<Button onClick={randomizeGrid} disabled={isRunning}>
+					Randomize
+				</Button>
+				<Button onClick={clearGrid} disabled={isRunning}>
+					Clear
+				</Button>
 			</div>
 		</div>
 	)
