@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 
 const GRID_SIZE = 30
@@ -15,6 +15,9 @@ const createEmptyGrid = (): Grid =>
 const GameOfLife: React.FC = () => {
 	const [grid, setGrid] = useState<Grid>(createEmptyGrid())
 	const [isRunning, setIsRunning] = useState(false)
+	const [isDrawing, setIsDrawing] = useState(false)
+	const [lastCell, setLastCell] = useState<[number, number] | null>(null)
+	const gridRef = useRef<HTMLDivElement>(null)
 
 	const countNeighbors = (grid: Grid, x: number, y: number): number => {
 		let count = 0
@@ -24,7 +27,7 @@ const GameOfLife: React.FC = () => {
 				const newX = x + i
 				const newY = y + j
 				if (newX >= 0 && newX < GRID_SIZE && newY >= 0 && newY < GRID_SIZE) {
-					count += grid[newX][newY] ? 1 : 0
+					count += grid[newY][newX] ? 1 : 0
 				}
 			}
 		}
@@ -33,13 +36,13 @@ const GameOfLife: React.FC = () => {
 
 	const nextGeneration = useCallback((grid: Grid): Grid => {
 		const newGrid = createEmptyGrid()
-		for (let i = 0; i < GRID_SIZE; i++) {
-			for (let j = 0; j < GRID_SIZE; j++) {
-				const neighbors = countNeighbors(grid, i, j)
-				if (grid[i][j]) {
-					newGrid[i][j] = neighbors === 2 || neighbors === 3
+		for (let y = 0; y < GRID_SIZE; y++) {
+			for (let x = 0; x < GRID_SIZE; x++) {
+				const neighbors = countNeighbors(grid, x, y)
+				if (grid[y][x]) {
+					newGrid[y][x] = neighbors === 2 || neighbors === 3
 				} else {
-					newGrid[i][j] = neighbors === 3
+					newGrid[y][x] = neighbors === 3
 				}
 			}
 		}
@@ -56,17 +59,63 @@ const GameOfLife: React.FC = () => {
 		return () => clearInterval(intervalId)
 	}, [isRunning, nextGeneration])
 
-	const handleCellClick = (x: number, y: number) => {
-		const newGrid = [...grid]
-		newGrid[x][y] = !newGrid[x][y]
-		setGrid(newGrid)
+	const handleCellChange = (x: number, y: number) => {
+		if (isRunning) return
+		setGrid(prevGrid => {
+			const newGrid = [...prevGrid]
+			newGrid[y] = [...newGrid[y]]
+			newGrid[y][x] = !newGrid[y][x]
+			return newGrid
+		})
+	}
+
+	const getGridCoordinates = (
+		clientX: number,
+		clientY: number,
+	): [number, number] | null => {
+		if (!gridRef.current) return null
+		const rect = gridRef.current.getBoundingClientRect()
+		const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft
+		const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+		const x = Math.floor((clientX - rect.left - scrollLeft) / CELL_SIZE)
+		const y = Math.floor((clientY - rect.top - scrollTop) / CELL_SIZE)
+		if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
+			return [x, y]
+		}
+		return null
+	}
+
+	const handlePointerDown = (e: React.PointerEvent) => {
+		setIsDrawing(true)
+		const coords = getGridCoordinates(e.clientX, e.clientY)
+		if (coords) {
+			handleCellChange(...coords)
+			setLastCell(coords)
+		}
+	}
+
+	const handlePointerMove = (e: React.PointerEvent) => {
+		if (!isDrawing) return
+		const coords = getGridCoordinates(e.clientX, e.clientY)
+		if (
+			coords &&
+			(!lastCell || coords[0] !== lastCell[0] || coords[1] !== lastCell[1])
+		) {
+			handleCellChange(...coords)
+			setLastCell(coords)
+		}
+	}
+
+	const handlePointerUp = () => {
+		setIsDrawing(false)
+		setLastCell(null)
 	}
 
 	const randomizeGrid = () => {
 		const newGrid = createEmptyGrid()
-		for (let i = 0; i < GRID_SIZE; i++) {
-			for (let j = 0; j < GRID_SIZE; j++) {
-				newGrid[i][j] = Math.random() > 0.7
+		for (let y = 0; y < GRID_SIZE; y++) {
+			for (let x = 0; x < GRID_SIZE; x++) {
+				newGrid[y][x] = Math.random() > 0.7
 			}
 		}
 		setGrid(newGrid)
@@ -79,21 +128,28 @@ const GameOfLife: React.FC = () => {
 	return (
 		<div className="flex flex-col items-center gap-4">
 			<div
-				className="border border-gray-300 inline-block"
-				style={{ width: GRID_SIZE * CELL_SIZE, height: GRID_SIZE * CELL_SIZE }}
+				ref={gridRef}
+				className="border border-gray-300 inline-block touch-none"
+				style={{
+					width: GRID_SIZE * CELL_SIZE,
+					height: GRID_SIZE * CELL_SIZE,
+					cursor: isRunning ? "not-allowed" : "pointer",
+				}}
+				onPointerDown={handlePointerDown}
+				onPointerMove={handlePointerMove}
+				onPointerUp={handlePointerUp}
+				onPointerLeave={handlePointerUp}
 			>
-				{grid.map((row, x) => (
-					<div key={x} className="flex">
-						{row.map((cell, y) => (
+				{grid.map((row, y) => (
+					<div key={y} className="flex">
+						{row.map((cell, x) => (
 							<div
-								key={`${x}-${y}`}
-								className={
-									`${cell ? "bg-black" : "bg-white"}` +
-									" border border-gray-300"
-								}
+								key={`${y}-${x}`}
+								className={`${
+									cell ? "bg-black" : "bg-white"
+								} border border-gray-200`}
 								style={{ width: CELL_SIZE, height: CELL_SIZE }}
-								onClick={() => handleCellClick(x, y)}
-							></div>
+							/>
 						))}
 					</div>
 				))}
