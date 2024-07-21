@@ -87,7 +87,10 @@ const GameOfLife: React.FC = () => {
 						{row.map((cell, y) => (
 							<div
 								key={`${x}-${y}`}
-								className={`${cell ? "bg-black" : "bg-white"}`}
+								className={
+									`${cell ? "bg-black" : "bg-white"}` +
+									" border border-gray-300"
+								}
 								style={{ width: CELL_SIZE, height: CELL_SIZE }}
 								onClick={() => handleCellClick(x, y)}
 							></div>
